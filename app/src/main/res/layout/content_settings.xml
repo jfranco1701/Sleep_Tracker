@@ -12,4 +12,33 @@
     tools:context="com.app.joe.sleeptracker.SettingsActivity"
     tools:showIn="@layout/activity_settings">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="MetaWear Device"
+        android:id="@+id/textView"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Selected Device"
+        android:id="@+id/textViewSelectedDevice"
+        android:layout_marginTop="25dp"
+        android:layout_below="@+id/textView"
+        android:layout_alignParentStart="true"
+        android:layout_marginLeft="8dp" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select MetaWear Device"
+        android:id="@+id/btnSelectDevice"
+        android:layout_below="@+id/textViewSelectedDevice"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="49dp" />
 </RelativeLayout>
