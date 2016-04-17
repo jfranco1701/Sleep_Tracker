@@ -26,13 +26,15 @@ public class SettingsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_settings);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        
+
+        PreferenceManager.Init(this);
+
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         Button btnSelectDevice = (Button)findViewById(R.id.btnSelectDevice);
         btnSelectDevice.setOnClickListener(
                 new Button.OnClickListener() {
-                    public void onClick(View v){
+                    public void onClick(View v) {
                         Intent intent = new Intent(SettingsActivity.this, MWScanActivity.class);
                         startActivityForResult(intent, 1);
                     }
@@ -40,7 +42,7 @@ public class SettingsActivity extends AppCompatActivity {
         );
 
         TextView textViewSelectedDevice = (TextView)findViewById(R.id.textViewSelectedDevice);
-        textViewSelectedDevice.setText("Selected Device: " + readMACAddress());
+        textViewSelectedDevice.setText("Selected Device: " + PreferenceManager.readMACAddress());
     }
 
     @Override
@@ -48,12 +50,12 @@ public class SettingsActivity extends AppCompatActivity {
 
         if (requestCode == 1) {
             if(resultCode == Activity.RESULT_OK){
-                String strMAC=data.getStringExtra("MAC");
+                String mac=data.getStringExtra("MAC");
 
-                writeMACAddress(strMAC);
+                PreferenceManager.writeMACAddress(mac);
 
                 TextView textViewSelectedDevice = (TextView)findViewById(R.id.textViewSelectedDevice);
-                textViewSelectedDevice.setText("Selected Device: " + readMACAddress());
+                textViewSelectedDevice.setText("Selected Device: " + PreferenceManager.readMACAddress());
             }
             if (resultCode == Activity.RESULT_CANCELED) {
                 //Write your code if there's no result
@@ -61,16 +63,4 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    private void writeMACAddress(String macAddress){
-        preferenceSettings = getPreferences(PREFERENCE_MODE_PRIVATE);
-        preferenceEditor = preferenceSettings.edit();
-        preferenceEditor.putString("macAddress", macAddress);
-        preferenceEditor.commit();
-    }
-
-    private String readMACAddress(){
-        preferenceSettings = getPreferences(PREFERENCE_MODE_PRIVATE);
-        String strMACAddress = preferenceSettings.getString("macAddress", "No Device Selected");
-        return strMACAddress;
-    }
 }

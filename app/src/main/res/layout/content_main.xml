@@ -13,12 +13,25 @@
     tools:showIn="@layout/activity_main">
 
 
-    <Button
-        android:layout_width="wrap_content"
+    <TextView
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:text="Connect to Metawear Device"
-        android:id="@+id/buttonConnect"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="MetaWear Device Status"
+        android:id="@+id/textViewStatusHeader"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="189dp" />
+        android:textAlignment="center" />
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Status"
+        android:id="@+id/textViewStatus"
+        android:layout_marginTop="39dp"
+        android:layout_below="@+id/textViewStatusHeader"
+        android:layout_toStartOf="@+id/textViewStatusHeader"
+        android:layout_alignParentEnd="true"
+        android:textAlignment="center" />
 </RelativeLayout>

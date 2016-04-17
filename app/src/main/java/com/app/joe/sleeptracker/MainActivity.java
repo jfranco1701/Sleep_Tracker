@@ -1,7 +1,9 @@
 package com.app.joe.sleeptracker;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -16,6 +18,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
@@ -26,9 +29,15 @@ public class MainActivity extends AppCompatActivity {
     private DrawerLayout mDrawerLayout;
     private String mActivityTitle;
 
+    private static final int PREFERENCE_MODE_PRIVATE = 0;
+    private static final int NO_DEVICE_SELECTED = 99;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        PreferenceManager.Init(this);
+
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -42,33 +51,33 @@ public class MainActivity extends AppCompatActivity {
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
+
+//        PreferenceManager.writeMACAddress("");
+
+        if (PreferenceManager.readMACAddress() == ""){
+            setStatus(NO_DEVICE_SELECTED);
+        }
     }
 
- /*       @Override
-        public boolean onOptionsItemSelected2(MenuItem item) {
-            // Handle action bar item clicks here. The action bar will
-            // automatically handle clicks on the Home/Up button, so long
-            // as you specify a parent activity in AndroidManifest.xml.
+    private void setStatus(int status){
+        TextView textViewStatus = (TextView)findViewById(R.id.textViewStatus);
+        String strStatus = "";
 
-            Intent intent;
-
-            switch(item.getItemId()){
-                case R.id.action_settings:
-                    intent = new Intent(this, SettingsActivity.class);
-                    this.startActivity(intent);
-                    break;
-                case R.id.action_view:
-                    intent = new Intent(this, ViewActivity.class);
-                    this.startActivity(intent);
-                    break;
-                case R.id.action_about:
-                    intent = new Intent(this, AboutActivity.class);
-                    this.startActivity(intent);
-                    break;
-            }
-
-            return super.onOptionsItemSelected(item);
-        }*/
+        switch (status){
+            case 0: textViewStatus.setText("Disconnected");
+                textViewStatus.setTextColor(Color.BLACK);
+                break;
+            case 1: textViewStatus.setText("Connected");
+                textViewStatus.setTextColor(Color.GREEN);
+                break;
+            case 99: textViewStatus.setText("No Device Selected");
+                textViewStatus.setTextColor(Color.RED);
+                break;
+            default: textViewStatus.setText("Error");
+                textViewStatus.setTextColor(Color.RED);
+                break;
+        }
+    }
 
     private void addDrawerItems() {
         String[] osArray = { "View Tracking History", "Settings", "About" };
@@ -104,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
             /** Called when a drawer has settled in a completely open state. */
             public void onDrawerOpened(View drawerView) {
                 super.onDrawerOpened(drawerView);
-                getSupportActionBar().setTitle("Navigation!");
+                getSupportActionBar().setTitle("Sleep Tracker Navigation");
                 invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
             }
 
