@@ -1,10 +1,16 @@
 package com.app.joe.sleeptracker;
 
+import android.app.ProgressDialog;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.widget.DrawerLayout;
@@ -19,26 +25,69 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+import com.mbientlab.metawear.MetaWearBleService;
+import com.mbientlab.metawear.MetaWearBoard;
+import com.mbientlab.metawear.UnsupportedModuleException;
+import com.mbientlab.metawear.module.IBeacon;
+
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
+import android.util.Log;
 import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity {
+import static com.mbientlab.metawear.AsyncOperation.CompletionHandler;
+import static com.mbientlab.metawear.MetaWearBoard.ConnectionStateHandler;
+
+public class MainActivity extends AppCompatActivity implements ServiceConnection {
 
     private ListView mDrawerList;
     private ArrayAdapter<String> mAdapter;
     private ActionBarDrawerToggle mDrawerToggle;
     private DrawerLayout mDrawerLayout;
     private String mActivityTitle;
+    private String deviceMACAddress = "";
 
     private static final int PREFERENCE_MODE_PRIVATE = 0;
     private static final int NO_DEVICE_SELECTED = 99;
+    private static final int DEVICE_DISCONNECTED = 0;
+    private static final int DEVICE_CONNECTED = 1;
+
+    private MetaWearBleService.LocalBinder serviceBinder;
+    private MetaWearBoard mwBoard;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
 
+        super.onCreate(savedInstanceState);
         PreferenceManager.Init(this);
 
         setContentView(R.layout.activity_main);
+
+        Button btnConnect = (Button)findViewById(R.id.btnConnect);
+        btnConnect.setOnClickListener(
+                new Button.OnClickListener() {
+                    public void onClick(View v) {
+
+                        final ProgressDialog connectDialog = new ProgressDialog(MainActivity.this);
+                        connectDialog.setTitle(getString(R.string.title_connecting));
+                        connectDialog.setMessage(getString(R.string.message_wait));
+                        connectDialog.setCancelable(false);
+                        connectDialog.setCanceledOnTouchOutside(false);
+                        connectDialog.setIndeterminate(true);
+                        connectDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(R.string.label_cancel), new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                mwBoard.disconnect();
+                            }
+                        });
+                        connectDialog.show();
+
+                        mwBoard.connect();
+                    }
+                }
+        );
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -54,10 +103,44 @@ public class MainActivity extends AppCompatActivity {
 
 //        PreferenceManager.writeMACAddress("");
 
-        if (PreferenceManager.readMACAddress() == ""){
+        deviceMACAddress = PreferenceManager.readMACAddress();
+
+        if (deviceMACAddress == ""){
             setStatus(NO_DEVICE_SELECTED);
         }
+        else{
+            // Bind the service when the activity is created
+            getApplicationContext().bindService(new Intent(this, MetaWearBleService.class), this, BIND_AUTO_CREATE);
+        }
     }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        // Unbind the service when the activity is destroyed
+        getApplicationContext().unbindService(this);
+    }
+
+/*    private void getMetaWareDevice(){
+        final BluetoothManager btManager  = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+        final BluetoothDevice btDevice = btManager.getAdapter().getRemoteDevice(deviceMACAddress);
+        mwBoard= binder.getMetaWearBoard(btDevice);
+
+        final ProgressDialog connectDialog = new ProgressDialog(this);
+        connectDialog.setTitle(getString(R.string.title_connecting));
+        connectDialog.setMessage(getString(R.string.message_wait));
+        connectDialog.setCancelable(false);
+        connectDialog.setCanceledOnTouchOutside(false);
+        connectDialog.setIndeterminate(true);
+        connectDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(R.string.label_cancel), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                mwBoard.disconnect();
+            }
+        });
+        connectDialog.show();
+    }*/
 
     private void setStatus(int status){
         TextView textViewStatus = (TextView)findViewById(R.id.textViewStatus);
@@ -167,5 +250,80 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder service) {
+        // Typecast the binder to the service's LocalBinder class
+//        serviceBinder = (MetaWearBleService.LocalBinder) service;
+
+        MetaWearBleService.LocalBinder binder = (MetaWearBleService.LocalBinder) service;
+
+        final BluetoothManager btManager= (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        final BluetoothDevice remoteDevice= btManager.getAdapter().getRemoteDevice(deviceMACAddress);
+
+        binder.executeOnUiThread();
+        mwBoard= binder.getMetaWearBoard(remoteDevice);
+        mwBoard.setConnectionStateHandler(new ConnectionStateHandler() {
+            @Override
+            public void connected() {
+                Toast.makeText(MainActivity.this, "Connected", Toast.LENGTH_LONG).show();
+
+                Log.i("test", "Connected");
+                Log.i("test", "MetaBoot? " + mwBoard.inMetaBootMode());
+
+                mwBoard.readDeviceInformation().onComplete(new CompletionHandler<MetaWearBoard.DeviceInformation>() {
+                    @Override
+                    public void success(MetaWearBoard.DeviceInformation result) {
+                        Log.i("test", "Device Information: " + result.toString());
+                    }
+
+                    @Override
+                    public void failure(Throwable error) {
+                        Log.e("test", "Error reading device information", error);
+                    }
+                });
+
+                try {
+                    mwBoard.getModule(IBeacon.class).readConfiguration().onComplete(new CompletionHandler<IBeacon.Configuration>() {
+                        @Override
+                        public void success(IBeacon.Configuration result) {
+                            Log.i("test", result.toString());
+                        }
+
+                        @Override
+                        public void failure(Throwable error) {
+                            Log.e("test", "Error reading ibeacon configuration", error);
+                        }
+                    });
+                } catch (UnsupportedModuleException e) {
+                    Log.e("test", "Cannot get module", e);
+                }
+            }
+            @Override
+            public void disconnected() {
+                Toast.makeText(MainActivity.this, "Disconnected", Toast.LENGTH_LONG).show();
+                Log.i("test", "Disconnected");
+            }
+
+            @Override
+            public void failure(int status, final Throwable error) {
+                Toast.makeText(MainActivity.this, error.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                Log.e("test", "Error connecting", error);
+            }
+        });
+
+        if (mwBoard.isConnected()) {
+            setStatus(DEVICE_CONNECTED);
+        }
+        else{
+            setStatus(DEVICE_DISCONNECTED);
+        }
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+
     }
 }
