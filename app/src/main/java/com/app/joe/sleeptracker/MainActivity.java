@@ -1,5 +1,8 @@
 package com.app.joe.sleeptracker;
 
+import android.app.Fragment;
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
@@ -55,6 +58,9 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     private MetaWearBleService.LocalBinder serviceBinder;
     private MetaWearBoard mwBoard;
 
+    public MetaWearBoard getBoard(){
+        return mwBoard;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                                 mwBoard.disconnect();
                             }
                         });
-                        connectDialog.show();
+/*                        connectDialog.show();*/
 
                         mwBoard.connect();
                     }
@@ -270,6 +276,19 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             public void connected() {
                 Toast.makeText(MainActivity.this, "Connected", Toast.LENGTH_LONG).show();
 
+                setStatus(DEVICE_CONNECTED);
+
+                // get fragment manager
+                FragmentManager fm = getFragmentManager();
+
+// add
+                FragmentTransaction ft = fm.beginTransaction();
+
+                InfoFragment infFragment = new InfoFragment();
+                ft.add(R.id.infocontainer, infFragment);
+                ft.attach(infFragment);
+                ft.commit();
+
                 Log.i("test", "Connected");
                 Log.i("test", "MetaBoot? " + mwBoard.inMetaBootMode());
 
@@ -303,6 +322,8 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             }
             @Override
             public void disconnected() {
+                setStatus(DEVICE_DISCONNECTED);
+
                 Toast.makeText(MainActivity.this, "Disconnected", Toast.LENGTH_LONG).show();
                 Log.i("test", "Disconnected");
             }
